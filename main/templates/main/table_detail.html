@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+
+<style type="text/css">
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0px;
+}
+table {
+    width: 1280px;
+    height: 720px;
+    border-spacing: 1px 0;
+    border-collapse: separate;
+}
+h1 {
+    font-size: 32px;
+}
+th {
+    background: #ccc;
+}
+th.space, td.space, th.cap {
+    background: #fff;
+}
+th.cap {
+    font-size: 24px;
+}
+tr {
+    text-align: center;
+    font-size: 19px;
+}
+tr:nth-child(even) {
+    background: #eee;
+}
+tr.space {
+    height: 19px;
+    background: #fff;
+}
+td.comment {
+    background: #fff;
+    text-align: left;
+    font-size: 15px;
+}
+td.supercomment {
+    text-align: left;
+    font-size: 15px;
+}
+td.link {
+    position: relative;
+    background: #fff;
+}
+div.in, div.down, div.out {
+    position: absolute;
+    left: 0;
+    width: 16px;
+    border: 2px solid black;
+}
+div.out {
+    border-width: 2px 2px 0 0;
+    border-radius: 0 4px 0 0;
+    bottom: 0;
+    height: 7px;
+}
+div.down {
+    border-width: 0 2px 0 0;
+    top: 0;
+    height: 100%;
+}
+div.in {
+    border-width: 0 2px 2px 0;
+    border-radius: 0 0 4px 0;
+    top: 0;
+    height: 7px;
+}
+div.arrow {
+    position: absolute;
+    left: -1px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 10px solid black;
+}
+div.arrow.forw {
+    top: 3px;
+}
+div.arrow.back {
+    bottom: 3px;
+}
+
+{% for build in buildings %}
+tr:nth-child(even).build-{{build.pk}} {
+    background: {{build.even_color}};
+}
+tr:nth-child(odd).build-{{build.pk}} {
+    background: {{build.odd_color}};
+}
+{% endfor %}
+
+{% if image %}
+table {
+    width: 1920px;
+    height: 1080px;
+}
+h1 {
+    font-size: 48px;
+}
+th.cap {
+    font-size: 36px;
+    padding: 8px 0;
+}
+th {
+    padding: 4px 0;
+}
+tr {
+    font-size: 28px;
+}
+tr.space {
+    height: 28px;
+}
+td.comment {
+    font-size: 22px;
+}
+td.supercomment {
+    font-size: 22px;
+}
+{% endif %}
+</style>
+
+</head>
+<body>
+
+<table>
+<thead>
+<tr>
+  <th colspan="{{column_types|length|add:'9'}}" class="cap">Расписание наркозов на {{ datecap }}</th>
+  <th colspan="2" class="space"></th>
+</tr>
+<tr>
+  <th>Блок</th>
+  <th>Начало</th>
+  <th>Этаж</th>
+  <th>Опер.</th>
+  <th>Отделение</th>
+  {% for coltype in column_types %}
+    <th>{{ coltype.name }}</th>
+  {% endfor %}
+  <th>Анестезиолог</th>
+  <th>Ординатор</th>
+  <th>Медсестра</th>
+  <th>в ОАиР</th>
+  <th class="space" style="width: {{ comment_indent|add:'8' }}px;"></th>
+  <th class="space"></th>
+</tr>
+</thead>
+<tbody>
+
+{% for line in room_lines %}
+<tr class="rooms build-{{line.room.building.pk}}">
+  <td class="building">{% ifchanged line.room.building.name %}{{ line.room.building.name }}{% endifchanged %}</td>
+  <td class="time">{{ line.begin_time|default:'' }}</td>
+  <td class="floor">{{ line.room.floor_roman }}</td>
+  <td class="room">{{ line.room.number }}</td>
+  <td class="dept">{{ line.dept_str }}</td>
+  {% for coltype in column_types %}
+    <td>{{ line.columns|key:coltype.id|default:'' }}</td>
+  {% endfor %}
+  <td class="doctor">{{ line.doctor|default:'' }}</td>
+  <td class="resident">{{ line.resident|default:'' }}</td>
+  <td class="nurse">{{ line.nurse|default:'' }}</td>
+  <td class="oair">{{ line.oair|default:'' }}</td>
+  <td class="link">{% for cl in line.cls %}<div class="{{ cl.0 }}" style="width: {{ cl.1 }}px;"></div>{% endfor %}</td>
+  <td class="comment">{{ line.comment }}</td>
+</tr>
+{% endfor %}
+
+<tr class="space">
+  <td colspan="{{column_types|length|add:'9'}}"></td>
+  <td class="link">{% for cl in blank_cls %}<div class="{{ cl.0 }}" style="width: {{ cl.1 }}px;"></div>{% endfor %}</td>
+  <td class="supercomment" rowspan="{{ chamber_lines|length|add:'3' }}">{{ table.comment|linebreaks }}</td>
+</tr>
+
+{% for line in chamber_lines %}
+<tr class="chambers">
+  <td colspan="{{column_types|length|add:'5'}}" class="room">{% for ch in line.chamber.all %}{{ ch.name }}{% if not forloop.last %} + {% endif %}{% endfor %}</td>
+  <td class="doctor">{{ line.doctor|default:'' }}</td>
+  <td class="resident">{{ line.resident|default:'' }}</td>
+  <td class="nurse"></td>
+  <td class="oair"></td>
+  <td class="link">{% for cl in line.cls %}<div class="{{ cl.0 }}" style="width: {{ cl.1 }}px;"></div>{% endfor %}</td>
+</tr>
+{% endfor %}
+
+<tr class="space"><td colspan="{{column_types|length|add:'11'}}"></td></tr>
+
+<tr class="vacations">
+  <td colspan="2">Домой</td>
+  <td colspan="{{column_types|length|add:'7'}}" class="doctor">
+  {% for line in table.vacationline_set.all %}
+    {{ line.employee.name }}{% if not forloop.last %}, {% endif %}
+  {% endfor %}
+  </td>
+  <td colspan="2" class="space"></td>
+</tr>
+
+</tbody>
+</table>
+
+</body>
+</html>
